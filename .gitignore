@@ -1,0 +1,52 @@
+# Secrets — never commit
+.env
+*.env
+.env.*
+*.tfvars
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# ADK local state
+.adk/
+*.db
+.persist_vector_store
+.saved_chats
+.google-agents-cli/
+.agents-cli-scripts/
+
+# Test & lint caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Terraform state (may contain secrets)
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+
+# Artifacts & traces
+artifacts/
+
+# Node
+**/node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDEs
+.idea/
+.vscode/
+.history/

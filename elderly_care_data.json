@@ -1,0 +1,20 @@
+{
+  "patients": {
+    "john_doe": {
+      "medications": [
+        {"name": "Lisinopril", "dosage": "10mg", "frequency": "Once daily in the morning", "purpose": "Blood pressure"},
+        {"name": "Metformin", "dosage": "500mg", "frequency": "Twice daily with meals", "purpose": "Diabetes"}
+      ],
+      "medication_history": [
+        {"medication": "Lisinopril", "time_taken": "2026-07-02 08:00 AM", "status": "taken"},
+        {"medication": "Metformin", "time_taken": "2026-07-02 08:30 AM", "status": "taken"}
+      ],
+      "wellbeing_logs": [
+        {"timestamp": "2026-07-02 09:00 AM", "systolic": 120, "diastolic": 80, "heart_rate": 72, "temperature": 98.6, "symptoms": "Feeling well, no complaints.", "status": "normal"}
+      ],
+      "appointments": [
+        {"doctor_name": "Dr. Smith (Cardiologist)", "date_time": "2026-07-10 10:00 AM", "reason": "Routine cardiac checkup"}
+      ]
+    }
+  }
+}

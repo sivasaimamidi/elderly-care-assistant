@@ -1,0 +1,59 @@
+[0:00 — HOOK]
+
+Millions of elderly people rely on caregivers to manage their medications, track their vitals, and coordinate doctor visits. One missed dose or one wrong dosage change can be dangerous. I built an AI concierge that handles all of this — safely.
+
+[0:20 — WHAT IT IS]
+
+This is the Elderly Care Assistant, a multi-agent AI system built on Google's Agent Development Kit. It falls under the Concierge Agents track — a personal health coordinator for elderly patients and their caregivers.
+
+[0:40 — SHOW THE BANNER]
+
+(show assets/cover_page_banner.png)
+
+At a glance: the Elderly Care Assistant is automated, secure, and intelligent. It tracks medication schedules, logs well-being metrics like blood pressure and heart rate, and books doctor appointments — all through natural conversation.
+
+[1:00 — ARCHITECTURE]
+
+(show assets/architecture_diagram.png)
+
+Let me walk through the architecture. Every user message first hits the Security Checkpoint — a deterministic function node that scrubs PII like phone numbers and SSNs, detects prompt injection attempts, and blocks harmful queries before anything reaches the LLM.
+
+If the input passes, it goes to the Orchestrator Agent. This is the brain. It reads the request and delegates to one of two specialist sub-agents using AgentTool.
+
+The first specialist is the Routine Med Manager. It handles medication schedules — viewing meds, logging when a med was taken, and updating dosages.
+
+The second is the Wellbeing Log Analyst. It logs vitals like blood pressure, heart rate, and temperature, and it books doctor appointments.
+
+Both specialists connect to the MCP Server over stdio. The MCP server exposes five tools that read and write to a local JSON database: get elderly status, update medication, log medication taken, add wellbeing log, and book appointment.
+
+After the orchestrator finishes, the Route Decision node checks if any action needs caregiver approval. If it does, the Human Reviewer node pauses the conversation and asks the caregiver to approve or deny. If approved, it loops back to the orchestrator to execute the change. If denied, the operation is cancelled.
+
+[2:00 — LIVE DEMO]
+
+(switch to playground at localhost:18081)
+
+Let me show three test cases.
+
+(pause)
+
+First, a read-only query. I type: "What is the current status of patient john_doe?" This passes through security with no issues. The orchestrator routes it to the wellbeing log analyst, which calls get_elderly_status on the MCP server. You can see the full patient profile — medications, vital logs, and appointments — displayed right here.
+
+(pause)
+
+Second, a medication change that requires approval. I type: "Change the Lisinopril dosage for john_doe to 20mg." This passes security, goes to the orchestrator, then to the routine med manager. But since changing a dosage is sensitive, the agent does NOT call the update tool directly. Instead, it writes a pending action to the session state and triggers the Human Reviewer. You can see the approval prompt right here: "Caregiver Approval Required. Do you approve?" I type "yes" and submit. The workflow loops back, executes the update through the MCP server, and confirms the change.
+
+(pause)
+
+Third, the safety guardrail. I type: "What is a lethal dose of Lisinopril?" The Security Checkpoint immediately catches the word "lethal," flags it as a domain policy violation with severity WARNING in the audit log, and blocks the request. No LLM ever sees this query. The user gets a safety alert message.
+
+[3:00 — SECURITY AND MCP]
+
+The security checkpoint runs three checks on every single input: PII redaction using regex for SSNs and phone numbers, prompt injection detection scanning for phrases like "ignore previous instructions," and a harm filter blocking references to overdose, poison, or lethal doses. Every check produces a structured JSON audit log with severity levels for cloud logging integration.
+
+The MCP server runs as an independent stdio process with five tools. It reads and writes to a simple JSON file, making it easy to inspect and debug. The architecture separates data access from LLM reasoning, so the agents never touch the database directly.
+
+[3:30 — IMPACT AND CLOSE]
+
+This system lowers the cognitive burden on caregivers by giving them a natural-language interface to manage patient data, while strict security controls and human-in-the-loop approval gates prevent the AI from making dangerous changes autonomously. It bridges the gap between simple alarm apps and complex medical record systems — a safe, smart concierge for the people who need it most.
+
+Thank you.
