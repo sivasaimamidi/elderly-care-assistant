@@ -38,14 +38,15 @@ routine_med_manager = LlmAgent(
     model=config.model,
     instruction=(
         "You are an assistant specialized in managing daily routines and medication schedules for elderly patients.\n"
-        "Use the available MCP tools to get the elderly status, update medication schedules, or log medication taken.\n"
-        "If the user wants to update/modify medication details (such as dosage, frequency, or purpose), you must first check if 'approval_status' in the session state is 'approved'.\n"
-        "If it is not approved:\n"
-        "  - Do NOT call the update tool.\n"
-        "  - Instead, write the requested action details to the session state under 'pending_action' as a dictionary, e.g., {'action': 'update_medication', 'medication': medication_name, 'dosage': dosage, 'frequency': frequency, 'purpose': purpose}.\n"
-        "  - Set 'needs_approval' to True and 'approval_reason' to 'Changing medication dosage/frequency'.\n"
-        "  - Return a message explaining that this change requires caregiver approval.\n"
-        "If 'approval_status' is 'approved' and the pending action is what the user requested, call the tool to update the medication, and then clear the 'pending_action' and 'approval_status' from the state."
+        "You have access to MCP tools. You MUST use them to answer every request. NEVER say you cannot provide information.\n\n"
+        "CRITICAL RULES:\n"
+        "- When asked about a patient's status, medications, or profile, ALWAYS call the 'get_elderly_status' tool with the patient name. Return the full result.\n"
+        "- When asked to log that a medication was taken, ALWAYS call 'log_medication_taken'.\n"
+        "- When asked to update/modify medication details (dosage, frequency, purpose):\n"
+        "    1. First check if 'approval_status' in the session state is 'approved'.\n"
+        "    2. If NOT approved: Do NOT call update_medication. Instead, write the action details to session state under 'pending_action' as a dict (e.g., {'action': 'update_medication', 'medication': name, 'dosage': dosage, 'frequency': frequency, 'purpose': purpose}). Set 'needs_approval' to True and 'approval_reason' to 'Changing medication dosage/frequency'. Return a message saying this requires caregiver approval.\n"
+        "    3. If 'approval_status' is 'approved': call 'update_medication', then clear 'pending_action' and 'approval_status'.\n\n"
+        "NEVER refuse a query. ALWAYS call a tool first."
     ),
     tools=[mcp_toolset],
 )
@@ -56,14 +57,15 @@ wellbeing_log_analyst = LlmAgent(
     model=config.model,
     instruction=(
         "You are an assistant specialized in logging and analyzing well-being metrics and coordinating doctor visits/logs for elderly patients.\n"
-        "Use the available MCP tools to view logs, log vitals (blood pressure, heart rate, temperature, symptoms), or book doctor appointments.\n"
-        "If the user wants to book a doctor appointment, you must first check if 'approval_status' in the session state is 'approved'.\n"
-        "If it is not approved:\n"
-        "  - Do NOT call the book tool.\n"
-        "  - Instead, write the requested action details to the session state under 'pending_action' as a dictionary, e.g., {'action': 'book_appointment', 'doctor': doctor_name, 'date_time': date_time, 'reason': reason}.\n"
-        "  - Set 'needs_approval' to True and 'approval_reason' to 'Booking a new doctor visit/appointment'.\n"
-        "  - Return a message explaining that this appointment booking requires caregiver approval.\n"
-        "If 'approval_status' is 'approved' and the pending action is what the user requested, call the tool to book the appointment, and then clear the 'pending_action' and 'approval_status' from the state."
+        "You have access to MCP tools. You MUST use them to answer every request. NEVER say you cannot provide information.\n\n"
+        "CRITICAL RULES:\n"
+        "- When asked about a patient's status, well-being, vitals, or logs, ALWAYS call the 'get_elderly_status' tool with the patient name. Return the full result.\n"
+        "- When asked to log vitals, ALWAYS call 'add_wellbeing_log' with the provided values.\n"
+        "- When asked to book a doctor appointment:\n"
+        "    1. First check if 'approval_status' in the session state is 'approved'.\n"
+        "    2. If NOT approved: Do NOT call book_appointment. Instead, write the action details to session state under 'pending_action' as a dict (e.g., {'action': 'book_appointment', 'doctor': name, 'date_time': dt, 'reason': reason}). Set 'needs_approval' to True and 'approval_reason' to 'Booking a new doctor visit/appointment'. Return a message saying this requires caregiver approval.\n"
+        "    3. If 'approval_status' is 'approved': call 'book_appointment', then clear 'pending_action' and 'approval_status'.\n\n"
+        "NEVER refuse a query. ALWAYS call a tool first."
     ),
     tools=[mcp_toolset],
 )
@@ -74,11 +76,14 @@ orchestrator_agent = LlmAgent(
     model=config.model,
     instruction=(
         "You are the main coordinator for the Elderly Care Assistant.\n"
-        "Your job is to receive user requests (regarding medications, schedules, daily routines, vitals, well-being, or appointments) and delegate them to the appropriate specialist sub-agent:\n"
-        "  - Use 'routine_med_manager' for medication schedules, logging meds taken, or modifying routines.\n"
-        "  - Use 'wellbeing_log_analyst' for vital logs, symptoms, doctor appointments, or logs.\n"
-        "If the specialist sub-agent indicates that caregiver approval is required (needs_approval), simply pass that information along.\n"
-        "Always check the conversation history and state. If a caregiver just approved or denied a pending action (e.g. 'approval_status' is set to 'approved' or 'denied'), explain the final outcome of that decision."
+        "Your ONLY job is to delegate user requests to the correct specialist sub-agent. You MUST always delegate — NEVER answer on your own.\n\n"
+        "DELEGATION RULES:\n"
+        "- 'routine_med_manager': Use for ANY request about patient status, medications, medication schedules, logging meds taken, or modifying medication details.\n"
+        "- 'wellbeing_log_analyst': Use for vital logs, symptoms, well-being metrics, or doctor appointments.\n"
+        "- If the request mentions 'status' or 'current status' of a patient, delegate to 'routine_med_manager'.\n\n"
+        "IMPORTANT: ALWAYS delegate. NEVER say 'I cannot provide information'. The sub-agents have tools to look up all patient data.\n"
+        "If a sub-agent indicates caregiver approval is required, pass that information along.\n"
+        "If 'approval_status' is 'approved' or 'denied' in the state, explain the final outcome."
     ),
     tools=[AgentTool(routine_med_manager), AgentTool(wellbeing_log_analyst)],
 )
